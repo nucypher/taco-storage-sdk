@@ -35,6 +35,8 @@ export interface StorageMetadata {
     /** Conditions for access control */
     conditions: any;
   };
+  /** IPFS hash (when using IPFS adapter) */
+  ipfsHash?: string;
 }
 
 /**

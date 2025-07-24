@@ -17,13 +17,9 @@ module.exports = {
     '^(\./.*)\.js$': '$1'
   },
   roots: ['<rootDir>/src'],
+  // Only run IPFS tests
   testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/?(*.)+(spec|test).ts'
-  ],
-  // Exclude IPFS tests from default test suite (require special Node options)
-  testPathIgnorePatterns: [
-    '<rootDir>/src/__tests__/adapters/ipfs.test.ts'
+    '**/adapters/ipfs.test.ts'
   ],
   collectCoverageFrom: [
     'src/**/*.ts',

@@ -199,7 +199,40 @@ try {
 
 - Node.js 16+
 - npm or yarn
-- IPFS node (for IPFS adapter testing)
+- IPFS Desktop or Kubo node (for IPFS adapter testing)
+
+### IPFS Integration Tests
+
+The IPFS adapter integration tests run against a real IPFS node and require special setup:
+
+**Requirements:**
+- IPFS Desktop or Kubo node running on `http://localhost:5001`
+- Tests use `kubo-rpc-client` for modern IPFS communication
+- No mocking - all tests run against real IPFS operations
+
+**Setup IPFS Desktop:**
+1. Download and install [IPFS Desktop](https://github.com/ipfs/ipfs-desktop)
+2. Start IPFS Desktop (default API at `http://localhost:5001`)
+3. Run tests: `npm run test:ipfs`
+
+**Or Setup Kubo CLI:**
+```bash
+# Install Kubo
+brew install ipfs  # macOS
+# or download from https://github.com/ipfs/kubo/releases
+
+# Initialize and start daemon
+ipfs init
+ipfs daemon
+
+# Run IPFS tests
+npm run test:ipfs
+```
+
+**Note:** IPFS tests are excluded from the main test suite (`npm test`) because they:
+- Require Node.js experimental VM modules (`--experimental-vm-modules`)
+- Need a running IPFS node
+- Use real network operations (not mocked)
 
 ### Setup
 
@@ -214,8 +247,17 @@ npm install
 # Build the project
 npm run build
 
-# Run tests
+# Run tests (excludes IPFS tests)
 npm test
+
+# Run IPFS integration tests (requires local IPFS node)
+npm run test:ipfs
+
+# Run ALL tests (main + IPFS integration)
+npm run test:all
+
+# Run all tests with coverage
+npm run test:coverage
 
 # Run linting
 npm run lint

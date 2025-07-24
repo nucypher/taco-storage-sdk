@@ -55,12 +55,15 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:ipfs": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.ipfs.config.js",
+    "test:all": "npm test && npm run test:ipfs",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@nucypher/taco": "^0.6.0",
-    "ipfs-http-client": "^60.0.1",
+    "@helia/unixfs": "^3.0.0",
+    "kubo-rpc-client": "^3.0.0",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.1"
   },

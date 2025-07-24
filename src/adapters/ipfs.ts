@@ -1,10 +1,19 @@
 /**
- * IPFS storage adapter implementation
+ * IPFS storage adapter implementation using modern Kubo RPC client
  */
 
-import { create, IPFSHTTPClient } from 'ipfs-http-client';
 import { BaseStorageAdapter } from './base';
-import { AdapterConfig, StorageMetadata, StorageResult, TacoStorageError, TacoStorageErrorType } from '../types';
+import {
+  AdapterConfig,
+  StorageMetadata,
+  StorageResult,
+  TacoStorageError,
+  TacoStorageErrorType,
+} from '../types';
+import { create as createKuboClient } from 'kubo-rpc-client';
+
+// Type for the Kubo RPC client (using ReturnType to infer proper type)
+type IPFSHTTPClient = ReturnType<typeof createKuboClient>;
 
 /**
  * Configuration interface for IPFS adapter
@@ -22,22 +31,20 @@ export interface IPFSAdapterConfig extends AdapterConfig {
  * IPFS storage adapter for decentralized data storage
  */
 export class IPFSAdapter extends BaseStorageAdapter {
-  private readonly client: IPFSHTTPClient;
+  private client: IPFSHTTPClient | null = null;
   private readonly shouldPin: boolean;
   private readonly timeout: number;
+  private readonly url: string;
 
   constructor(config: IPFSAdapterConfig = {}) {
     super(config);
-    
+
     const ipfsConfig = config as IPFSAdapterConfig;
     this.shouldPin = ipfsConfig.pin ?? true;
     this.timeout = ipfsConfig.timeout ?? 30000; // 30 second default timeout
+    this.url = ipfsConfig.url || 'http://localhost:5001';
 
-    // Only create client configuration - actual connection testing happens in initialize()
-    this.client = create({
-      url: ipfsConfig.url || 'http://localhost:5001',
-      timeout: this.timeout,
-    });
+    // Client will be created in initialize() using static import (may change to dynamic import in future)
   }
 
   /**
@@ -45,12 +52,18 @@ export class IPFSAdapter extends BaseStorageAdapter {
    */
   public async initialize(): Promise<void> {
     try {
+      // Create Kubo RPC client using static import
+      this.client = createKuboClient({
+        url: this.url,
+        timeout: this.timeout,
+      });
+
       // Test IPFS connectivity by getting node ID and version info
       const [id, version] = await Promise.all([
         this.client.id(),
-        this.client.version()
+        this.client.version(),
       ]);
-      
+
       // Validate that we can communicate with the IPFS node
       if (!id || !version) {
         throw new Error('Invalid response from IPFS node');
@@ -69,10 +82,27 @@ export class IPFSAdapter extends BaseStorageAdapter {
   }
 
   /**
+   * Ensure client is initialized before use
+   */
+  private ensureClient(): IPFSHTTPClient {
+    if (!this.client) {
+      throw new TacoStorageError(
+        TacoStorageErrorType.ADAPTER_ERROR,
+        'IPFS adapter not initialized. Call initialize() first.'
+      );
+    }
+    return this.client;
+  }
+
+  /**
    * Store encrypted data and metadata on IPFS
    */
-  public async store(encryptedData: Uint8Array, metadata: StorageMetadata): Promise<StorageResult> {
+  public async store(
+    encryptedData: Uint8Array,
+    metadata: StorageMetadata
+  ): Promise<StorageResult> {
     this.validateData(encryptedData);
+    const client = this.ensureClient();
 
     try {
       // Create a structured object containing both data and metadata
@@ -88,7 +118,7 @@ export class IPFSAdapter extends BaseStorageAdapter {
       };
 
       // Add to IPFS
-      const result = await this.client.add(JSON.stringify(dataPackage), {
+      const result = await client.add(JSON.stringify(dataPackage), {
         pin: this.shouldPin,
         cidVersion: 1,
       });
@@ -100,10 +130,7 @@ export class IPFSAdapter extends BaseStorageAdapter {
         reference: this.generateReference(ipfsHash),
         metadata: {
           ...metadata,
-          metadata: {
-            ...metadata.metadata,
-            ipfsHash,
-          },
+          ipfsHash,
         },
       };
     } catch (error) {
@@ -118,23 +145,26 @@ export class IPFSAdapter extends BaseStorageAdapter {
   /**
    * Retrieve encrypted data and metadata from IPFS
    */
-  public async retrieve(id: string): Promise<{ encryptedData: Uint8Array; metadata: StorageMetadata }> {
+  public async retrieve(
+    id: string
+  ): Promise<{ encryptedData: Uint8Array; metadata: StorageMetadata }> {
     this.validateId(id);
 
     try {
       // First, try to find the IPFS hash in our metadata
       // For this implementation, we assume the id contains or maps to the IPFS hash
       let ipfsHash = id;
-      
+
       // If the id starts with 'ipfs://', extract the hash
       if (id.startsWith('ipfs://')) {
         ipfsHash = id.replace('ipfs://', '');
       }
 
       // Retrieve from IPFS
-      const stream = this.client.cat(ipfsHash, { timeout: this.timeout });
+      const client = this.ensureClient();
+      const stream = client.cat(ipfsHash, { timeout: this.timeout });
       const chunks: Uint8Array[] = [];
-      
+
       for await (const chunk of stream) {
         chunks.push(chunk);
       }
@@ -149,8 +179,12 @@ export class IPFSAdapter extends BaseStorageAdapter {
         createdAt: new Date(dataPackage.metadata.createdAt),
         encryptionMetadata: {
           ...dataPackage.metadata.encryptionMetadata,
-          encryptedKey: new Uint8Array(dataPackage.metadata.encryptionMetadata.encryptedKey),
-          capsule: new Uint8Array(dataPackage.metadata.encryptionMetadata.capsule),
+          encryptedKey: new Uint8Array(
+            dataPackage.metadata.encryptionMetadata.encryptedKey
+          ),
+          capsule: new Uint8Array(
+            dataPackage.metadata.encryptionMetadata.capsule
+          ),
         },
       };
 
@@ -163,7 +197,7 @@ export class IPFSAdapter extends BaseStorageAdapter {
           error as Error
         );
       }
-      
+
       throw new TacoStorageError(
         TacoStorageErrorType.RETRIEVAL_ERROR,
         `Failed to retrieve data from IPFS: ${(error as Error).message}`,
@@ -185,9 +219,10 @@ export class IPFSAdapter extends BaseStorageAdapter {
       }
 
       if (this.shouldPin) {
-        await this.client.pin.rm(ipfsHash);
+        const client = this.ensureClient();
+        await client.pin.rm(ipfsHash);
       }
-      
+
       return true;
     } catch (error) {
       // IPFS doesn't really "delete" content, just unpins it
@@ -209,7 +244,8 @@ export class IPFSAdapter extends BaseStorageAdapter {
       }
 
       // Try to stat the object to see if it exists
-      await this.client.files.stat(`/ipfs/${ipfsHash}`, { timeout: 5000 });
+      const client = this.ensureClient();
+      await client.files.stat(`/ipfs/${ipfsHash}`, { timeout: 5000 });
       return true;
     } catch {
       return false;
@@ -219,11 +255,15 @@ export class IPFSAdapter extends BaseStorageAdapter {
   /**
    * Get IPFS node health status
    */
-  public async getHealth(): Promise<{ healthy: boolean; details?: Record<string, unknown> }> {
+  public async getHealth(): Promise<{
+    healthy: boolean;
+    details?: Record<string, unknown>;
+  }> {
     try {
-      const nodeId = await this.client.id();
-      const version = await this.client.version();
-      
+      const client = this.ensureClient();
+      const nodeId = await client.id();
+      const version = await client.version();
+
       return {
         healthy: true,
         details: {
