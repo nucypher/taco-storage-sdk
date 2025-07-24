@@ -43,11 +43,11 @@ export class TacoStorage {
 
   constructor(
     adapter: IStorageAdapter,
-    config: TacoConfig,
+    tacoConfig: TacoConfig,
     provider: ethers.providers.Provider
   ) {
     this.adapter = adapter;
-    this.encryptionService = new TacoEncryptionService(config);
+    this.encryptionService = new TacoEncryptionService(tacoConfig);
     this.provider = provider;
   }
 
@@ -357,6 +357,25 @@ export class TacoStorage {
   ): Promise<TacoStorage> {
     const { KuboAdapter } = require('../adapters/ipfs/index');
     const adapter = new KuboAdapter(kuboConfig);
+    const storage = new TacoStorage(adapter, config, provider);
+    await storage.initialize();
+    return storage;
+  }
+
+  /**
+   * Create a new TacoStorage instance with Helia IPFS adapter
+   * @param config - TACo configuration
+   * @param provider - Ethereum provider
+   * @param heliaConfig - Helia adapter configuration
+   * @returns Promise resolving to initialized TacoStorage instance
+   */
+  public static async createWithHelia(
+    config: TacoConfig,
+    provider: ethers.providers.Provider,
+    heliaConfig?: import('../adapters/ipfs/index').HeliaAdapterConfig
+  ): Promise<TacoStorage> {
+    const { HeliaAdapter } = require('../adapters/ipfs/index');
+    const adapter = new HeliaAdapter(heliaConfig);
     const storage = new TacoStorage(adapter, config, provider);
     await storage.initialize();
     return storage;

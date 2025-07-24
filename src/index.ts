@@ -38,6 +38,7 @@ export {
   BaseStorageAdapter,
   BaseIPFSAdapter,
   KuboAdapter,
+  HeliaAdapter,
   IPFSAdapter, // For backward compatibility
   SQLiteAdapter,
 } from './adapters';
@@ -48,6 +49,7 @@ export type {
 
 export type {
   KuboAdapterConfig,
+  HeliaAdapterConfig,
   IPFSAdapterConfig, // For backward compatibility
   SQLiteAdapterConfig,
 } from './adapters';

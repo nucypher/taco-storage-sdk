@@ -23,7 +23,8 @@ module.exports = {
   ],
   // Exclude IPFS tests from default test suite (require special Node options)
   testPathIgnorePatterns: [
-    '<rootDir>/src/__tests__/adapters/ipfs.test.ts'
+    '<rootDir>/src/__tests__/adapters/ipfs.test.ts',
+    '<rootDir>/src/__tests__/adapters/helia/'
   ],
   collectCoverageFrom: [
     'src/**/*.ts',
