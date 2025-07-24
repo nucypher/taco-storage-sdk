@@ -361,7 +361,7 @@ describe('TacoStorage', () => {
         mockAdapter.retrieve.mockResolvedValue(mockRetrieveResult);
         mockEncryptionService.decrypt.mockResolvedValue(decryptedData);
 
-        const result = await storage.retrieve(testId, mockSigner);
+        const result = await storage.retrieve(testId);
 
         expect(result).toBeDefined();
         expect(result.data).toEqual(decryptedData); // Compare Uint8Array
@@ -370,7 +370,8 @@ describe('TacoStorage', () => {
         expect(mockAdapter.retrieve).toHaveBeenCalledWith(testId);
         expect(mockEncryptionService.decrypt).toHaveBeenCalledWith(
           expect.any(Object), // ThresholdMessageKit mock
-          mockProvider
+          mockProvider,
+          undefined
         );
       },
       TEST_TIMEOUT
@@ -391,7 +392,7 @@ describe('TacoStorage', () => {
         mockAdapter.retrieve.mockResolvedValue(mockRetrieveResult);
         mockEncryptionService.decrypt.mockResolvedValue(decryptedData);
 
-        const result = await storage.retrieve(testId, mockSigner);
+        const result = await storage.retrieve(testId);
 
         expect(result.data).toEqual(decryptedData);
       },
@@ -405,9 +406,9 @@ describe('TacoStorage', () => {
           new TacoStorageError(TacoStorageErrorType.NOT_FOUND, 'Not found')
         );
 
-        await expect(
-          storage.retrieve('non-existent', mockSigner)
-        ).rejects.toThrow(TacoStorageError);
+        await expect(storage.retrieve('non-existent')).rejects.toThrow(
+          TacoStorageError
+        );
       },
       TEST_TIMEOUT
     );
@@ -425,7 +426,7 @@ describe('TacoStorage', () => {
           new Error('Decryption failed')
         );
 
-        await expect(storage.retrieve('test-id', mockSigner)).rejects.toThrow(
+        await expect(storage.retrieve('test-id')).rejects.toThrow(
           'Decryption failed'
         );
       },

@@ -145,7 +145,7 @@ export class TacoStorage {
    */
   public async retrieve(
     id: string,
-    signer: ethers.Signer
+    context?: conditions.context.ConditionContext
   ): Promise<RetrievalResult> {
     if (!id || typeof id !== 'string') {
       throw new TacoStorageError(
@@ -158,16 +158,13 @@ export class TacoStorage {
       // Retrieve encrypted data and metadata from adapter
       const { encryptedData, metadata } = await this.adapter.retrieve(id);
 
-      // Reconstruct ThresholdMessageKit from stored data
-      const messageKitBytes = new Uint8Array(
-        metadata.encryptionMetadata.messageKit
-      );
-      const messageKit = ThresholdMessageKit.fromBytes(messageKitBytes);
+      const messageKit = ThresholdMessageKit.fromBytes(encryptedData);
 
       // Decrypt the data
       const decryptedData = await this.encryptionService.decrypt(
         messageKit,
-        this.provider
+        this.provider,
+        context
       );
 
       return {
