@@ -36,7 +36,9 @@ export { TacoEncryptionService } from './core/encryption';
 // Storage adapters
 export {
   BaseStorageAdapter,
-  IPFSAdapter,
+  BaseIPFSAdapter,
+  KuboAdapter,
+  IPFSAdapter, // For backward compatibility
   SQLiteAdapter,
 } from './adapters';
 
@@ -45,7 +47,8 @@ export type {
 } from './adapters';
 
 export type {
-  IPFSAdapterConfig,
+  KuboAdapterConfig,
+  IPFSAdapterConfig, // For backward compatibility
   SQLiteAdapterConfig,
 } from './adapters';
 

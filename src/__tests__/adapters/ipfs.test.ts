@@ -5,7 +5,7 @@
  * Requires IPFS daemon running at http://localhost:5001
  */
 
-import { IPFSAdapter } from '../../adapters/ipfs';
+import { IPFSAdapter } from '../../adapters/ipfs/index';
 import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../types';
 import { TEST_TIMEOUT } from '../setup';
 
