@@ -19,14 +19,15 @@ export interface PinataAdapterConfig extends AdapterConfig {
   jwt: string;
 }
 
-export interface PinataAdapterConfig extends AdapterConfig {}
-
 export class PinataAdapter extends BaseStorageAdapter {
   private client: PinataSDK | null = null;
   private readonly url: string;
   private readonly jwt: string;
   constructor(config: PinataAdapterConfig) {
     super(config);
+
+    // Validate required configuration
+    this.validateConfig(['url', 'jwt']);
 
     const pinataConfig = config as PinataAdapterConfig;
     this.url = pinataConfig.url;
@@ -68,15 +69,18 @@ export class PinataAdapter extends BaseStorageAdapter {
           ...metadata,
           createdAt: metadata.createdAt.toISOString(),
           encryptionMetadata: {
-            ...metadata.encryptionMetadata,
+            messageKit: Array.from(metadata.encryptionMetadata.messageKit),
+            conditions: metadata.encryptionMetadata.conditions,
           },
         },
       };
 
       const dataPackageJson = JSON.stringify(dataPackage);
-      // TODO: what name convention should we use for these files?
-      const file = new File([dataPackageJson], 'file.json', {
-        type: 'text/plain',
+      // Use a meaningful filename with timestamp and content type
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `taco-data-${timestamp}`;
+      const file = new File([dataPackageJson], fileName, {
+        type: 'application/json',
       });
       const result = await client.upload.public.file(file);
 
@@ -109,13 +113,8 @@ export class PinataAdapter extends BaseStorageAdapter {
         ...dataPackage.metadata,
         createdAt: new Date(dataPackage.metadata.createdAt),
         encryptionMetadata: {
-          ...dataPackage.metadata.encryptionMetadata,
-          encryptedKey: new Uint8Array(
-            dataPackage.metadata.encryptionMetadata.encryptedKey
-          ),
-          capsule: new Uint8Array(
-            dataPackage.metadata.encryptionMetadata.capsule
-          ),
+          messageKit: new Uint8Array(dataPackage.metadata.encryptionMetadata.messageKit),
+          conditions: dataPackage.metadata.encryptionMetadata.conditions,
         },
       };
       return { encryptedData, metadata };
@@ -145,9 +144,14 @@ export class PinataAdapter extends BaseStorageAdapter {
   public async exists(id: string): Promise<boolean> {
     this.validateId(id);
     const client = this.ensureClient();
-    const files = await client.files.public.list().cid(id);
-
-    return files.files.length > 0;
+    
+    try {
+      const files = await client.files.public.list().cid(id);
+      return files.files.length > 0;
+    } catch (error) {
+      // If we can't list files, assume the content doesn't exist
+      return false;
+    }
   }
 
   public async cleanup(): Promise<void> {
@@ -161,15 +165,27 @@ export class PinataAdapter extends BaseStorageAdapter {
   }> {
     try {
       const client = this.ensureClient();
+      const startTime = Date.now();
       const status = await client.files.public.list();
+      const responseTime = Date.now() - startTime;
+      
       return {
         healthy: true,
-        details: {},
+        details: {
+          gateway: this.url,
+          responseTime: `${responseTime}ms`,
+          fileCount: status.files?.length || 0,
+          authenticated: true,
+        },
       };
     } catch (error) {
       return {
         healthy: false,
-        details: {},
+        details: {
+          gateway: this.url,
+          error: (error as Error).message,
+          authenticated: false,
+        },
       };
     }
   }
