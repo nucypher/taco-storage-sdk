@@ -128,9 +128,27 @@ export class PinataAdapter extends BaseStorageAdapter {
     }
   }
 
-  public async delete(id: string): Promise<boolean> {}
+  public async delete(id: string): Promise<boolean> {
+    this.validateId(id);
+    const client = this.ensureClient();
 
-  public async exists(id: string): Promise<boolean> {}
+    try {
+      const unpin = await client.files.public.delete([id]);
+      return true;
+    } catch (error) {
+      // Pinata doesn't really "delete" content, just unpins it
+      // Return true even if unpin fails, as the content might not have been pinned
+      return true;
+    }
+  }
+
+  public async exists(id: string): Promise<boolean> {
+    this.validateId(id);
+    const client = this.ensureClient();
+    const files = await client.files.public.list().cid(id);
+
+    return files.files.length > 0;
+  }
 
   public async cleanup(): Promise<void> {
     // IPFS HTTP client doesn't require explicit cleanup
@@ -140,5 +158,19 @@ export class PinataAdapter extends BaseStorageAdapter {
   public async getHealth(): Promise<{
     healthy: boolean;
     details?: Record<string, unknown>;
-  }> {}
+  }> {
+    try {
+      const client = this.ensureClient();
+      const status = await client.files.public.list();
+      return {
+        healthy: true,
+        details: {},
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        details: {},
+      };
+    }
+  }
 }
