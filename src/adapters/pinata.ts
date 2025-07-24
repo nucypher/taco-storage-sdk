@@ -63,7 +63,7 @@ export class PinataAdapter extends BaseStorageAdapter {
 
     try {
       const dataPackage = {
-        data: Array.from(encryptedData), // Convert Uint8Array to regular array for JSON
+        data: Array.from(encryptedData),
         metadata: {
           ...metadata,
           createdAt: metadata.createdAt.toISOString(),
@@ -74,6 +74,7 @@ export class PinataAdapter extends BaseStorageAdapter {
       };
 
       const dataPackageJson = JSON.stringify(dataPackage);
+      // TODO: what name convention should we use for these files?
       const file = new File([dataPackageJson], 'file.json', {
         type: 'text/plain',
       });
@@ -95,7 +96,37 @@ export class PinataAdapter extends BaseStorageAdapter {
 
   public async retrieve(
     id: string
-  ): Promise<{ encryptedData: Uint8Array; metadata: StorageMetadata }> {}
+  ): Promise<{ encryptedData: Uint8Array; metadata: StorageMetadata }> {
+    this.validateId(id);
+    const client = this.ensureClient();
+    try {
+      const { data, contentType } = await client.gateways.public.get(id);
+
+      // Reconstruct the original data and metadata
+      const dataPackage = JSON.parse(data as string);
+      const encryptedData = new Uint8Array(dataPackage.data);
+      const metadata: StorageMetadata = {
+        ...dataPackage.metadata,
+        createdAt: new Date(dataPackage.metadata.createdAt),
+        encryptionMetadata: {
+          ...dataPackage.metadata.encryptionMetadata,
+          encryptedKey: new Uint8Array(
+            dataPackage.metadata.encryptionMetadata.encryptedKey
+          ),
+          capsule: new Uint8Array(
+            dataPackage.metadata.encryptionMetadata.capsule
+          ),
+        },
+      };
+      return { encryptedData, metadata };
+    } catch (error) {
+      throw new TacoStorageError(
+        TacoStorageErrorType.STORAGE_ERROR,
+        `Failed to retrieve data from Pinata: ${(error as Error).message}`,
+        error as Error
+      );
+    }
+  }
 
   public async delete(id: string): Promise<boolean> {}
 
