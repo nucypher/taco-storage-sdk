@@ -1,10 +1,10 @@
 # TACo Storage SDK
 
-A professional SDK for encrypted data storage and retrieval using TACo (Threshold Access Control) with multiple provider adapters.
+TypeScript SDK for encrypted data storage with TACo (Threshold Access Control), supporting multiple storage providers including IPFS and SQLite.
 
 ## Overview
 
-The TACo Storage SDK provides a high-level interface for storing and retrieving encrypted data using threshold cryptography. It supports multiple storage backends through a pluggable adapter system, starting with IPFS and SQLite adapters.
+This TypeScript SDK provides a high-level interface for storing and retrieving encrypted data using NuCypher's TACo (Threshold Access Control) system. It features a pluggable adapter architecture supporting multiple storage providers including IPFS for decentralized storage and SQLite for local/centralized storage.
 
 ## Features
 
