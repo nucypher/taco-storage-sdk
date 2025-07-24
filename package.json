@@ -61,9 +61,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@nucypher/taco": "^0.6.0",
     "@helia/unixfs": "^3.0.0",
+    "@nucypher/taco": "^0.6.0",
     "kubo-rpc-client": "^3.0.0",
+    "pinata": "^2.4.9",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.1"
   },
