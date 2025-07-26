@@ -40,17 +40,21 @@ export interface HeliaAdapterConfig extends AdapterConfig {
 export class HeliaAdapter extends BaseIPFSAdapter {
   private helia: Helia | null = null;
   private fs: UnixFS | null = null;
-  private readonly timeout: number;
-  private readonly autoStart: boolean;
-  private readonly heliaOptions: HeliaAdapterConfig['heliaOptions'];
+  private readonly heliaConfig: {
+    timeout: number;
+    autoStart: boolean;
+    heliaOptions?: HeliaAdapterConfig['heliaOptions'];
+  };
 
   constructor(config: HeliaAdapterConfig = {}) {
     super(config);
 
     const heliaConfig = config as HeliaAdapterConfig;
-    this.timeout = heliaConfig.timeout ?? 30000; // 30 second default timeout
-    this.autoStart = heliaConfig.autoStart ?? true;
-    this.heliaOptions = heliaConfig.heliaOptions;
+    this.heliaConfig = {
+      timeout: heliaConfig.timeout ?? 30000, // 30 second default timeout
+      autoStart: heliaConfig.autoStart ?? true,
+      heliaOptions: heliaConfig.heliaOptions
+    };
   }
 
   /**
@@ -59,7 +63,7 @@ export class HeliaAdapter extends BaseIPFSAdapter {
   public async initialize(): Promise<void> {
     try {
       // Create Helia node with optional custom configuration
-      const heliaOptions = this.heliaOptions || {
+      const heliaOptions = this.heliaConfig.heliaOptions || {
         // Default configuration for better compatibility
         libp2p: {
           addresses: {
@@ -74,7 +78,7 @@ export class HeliaAdapter extends BaseIPFSAdapter {
       this.fs = unixfs(this.helia);
 
       // Start the node if autoStart is enabled
-      if (this.autoStart && this.helia.libp2p.status !== 'started') {
+      if (this.heliaConfig.autoStart && this.helia.libp2p.status !== 'started') {
         await this.helia.libp2p.start();
       }
 
@@ -130,9 +134,9 @@ export class HeliaAdapter extends BaseIPFSAdapter {
     const chunks: Uint8Array[] = [];
     
     // Create timeout promise
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Operation timed out')), this.timeout);
-    });
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), this.heliaConfig.timeout)
+    );
     
     try {
       const contentIterable = fs.cat(cid, {
@@ -180,13 +184,12 @@ export class HeliaAdapter extends BaseIPFSAdapter {
   }
 
   protected async contentExists(hash: string): Promise<boolean> {
+    const { helia } = this.ensureHeliaReady();
+    const cid = this.parseCID(hash);
+    
     try {
-      const { helia } = this.ensureHeliaReady();
-      const cid = this.parseCID(hash);
-      
       // Try to get the block to see if it exists
-      await helia.blockstore.has(cid);
-      return true;
+      return await helia.blockstore.has(cid);
     } catch {
       return false;
     }
@@ -299,12 +302,16 @@ export class HeliaAdapter extends BaseIPFSAdapter {
    */
   public async delete(id: string): Promise<boolean> {
     this.validateId(id);
-
+    
+    const ipfsHash = this.parseReference(id);
     try {
-      const ipfsHash = this.parseReference(id);
       await this.unpinContent(ipfsHash);
       return true;
     } catch (error) {
+      // If it's an initialization error, let it propagate
+      if (error instanceof TacoStorageError && error.type === TacoStorageErrorType.ADAPTER_ERROR) {
+        throw error;
+      }
       // Return true even if unpin fails, as the content might not have been pinned
       return true;
     }
@@ -319,7 +326,11 @@ export class HeliaAdapter extends BaseIPFSAdapter {
     try {
       const ipfsHash = this.validateAndParseReference(id);
       return await this.contentExists(ipfsHash);
-    } catch {
+    } catch (error) {
+      // If it's an initialization error, let it propagate
+      if (error instanceof TacoStorageError && error.type === TacoStorageErrorType.ADAPTER_ERROR) {
+        throw error;
+      }
       return false;
     }
   }
@@ -331,6 +342,17 @@ export class HeliaAdapter extends BaseIPFSAdapter {
     healthy: boolean;
     details?: Record<string, unknown>;
   }> {
+    // Check if adapter is initialized
+    if (!this.helia || !this.fs) {
+      return {
+        healthy: false,
+        details: {
+          status: 'not_initialized',
+          error: 'Helia adapter not initialized'
+        }
+      };
+    }
+
     try {
       const { helia } = this.ensureHeliaReady();
       const peerId = helia.libp2p.peerId;

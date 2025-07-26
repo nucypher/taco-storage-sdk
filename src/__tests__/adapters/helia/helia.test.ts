@@ -4,22 +4,32 @@
  */
 
 import { HeliaAdapter } from '../../../adapters/ipfs/helia';
-import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../../types';
+import {
+  StorageMetadata,
+  TacoStorageError,
+  TacoStorageErrorType,
+} from '../../../types';
 import { TEST_TIMEOUT } from '../../setup';
 
 // Skip Helia tests in regular Jest runs to avoid ES module conflicts
-const skipInRegularJest = process.env.JEST_WORKER_ID && !process.env.NODE_OPTIONS?.includes('experimental-vm-modules');
+const skipInRegularJest =
+  process.env.JEST_WORKER_ID &&
+  !process.env.NODE_OPTIONS?.includes('experimental-vm-modules');
+
+// Check if we should skip all tests
+const shouldSkipTests =
+  process.env.SKIP_HELIA_TESTS === 'true' || skipInRegularJest;
 
 describe('HeliaAdapter Integration Tests', () => {
   let adapter: HeliaAdapter;
 
   // Extended timeout for Helia node startup
-  const HELIA_TIMEOUT = 60000; // 60 seconds
+  const HELIA_TIMEOUT = 90000; // 90 seconds
 
   beforeAll(async () => {
     // Skip if this is a quick test run
-    if (process.env.SKIP_HELIA_TESTS === 'true') {
-      console.log('Skipping Helia tests (SKIP_HELIA_TESTS=true)');
+    if (shouldSkipTests) {
+      console.log('Skipping Helia tests (environment not suitable)');
       return;
     }
 
@@ -30,15 +40,15 @@ describe('HeliaAdapter Integration Tests', () => {
       heliaOptions: {
         libp2p: {
           addresses: {
-            listen: ['/ip4/127.0.0.1/tcp/0']
+            listen: ['/ip4/127.0.0.1/tcp/0'],
           },
           connectionGater: {
-            denyDialMultiaddr: () => false
-          }
-        }
-      }
+            denyDialMultiaddr: () => false,
+          },
+        },
+      },
     });
-    
+
     await adapter.initialize();
     console.log('Helia node started successfully');
   }, HELIA_TIMEOUT);
@@ -52,7 +62,7 @@ describe('HeliaAdapter Integration Tests', () => {
   }, 30000);
 
   beforeEach(() => {
-    if (process.env.SKIP_HELIA_TESTS === 'true' || skipInRegularJest) {
+    if (shouldSkipTests) {
       pending('Helia tests are skipped');
     }
   });
@@ -126,23 +136,32 @@ describe('HeliaAdapter Integration Tests', () => {
     it(
       'should retrieve data successfully',
       async () => {
-        const { encryptedData, metadata } = await adapter.retrieve(storageResult.reference);
+        const { encryptedData, metadata } = await adapter.retrieve(
+          storageResult.reference
+        );
 
         expect(encryptedData).toEqual(new Uint8Array([6, 7, 8, 9, 10]));
         expect(metadata.id).toBe('test-id-helia-retrieve');
         expect(metadata.contentType).toBe('application/octet-stream');
-        expect(metadata.encryptionMetadata.messageKit).toEqual(Array.from(new Uint8Array([4, 5, 6])));
+        expect(metadata.encryptionMetadata.messageKit).toEqual(
+          Array.from(new Uint8Array([4, 5, 6]))
+        );
       },
       TEST_TIMEOUT
     );
 
     it('should throw error for invalid reference format', async () => {
-      await expect(adapter.retrieve('invalid-reference')).rejects.toThrow(TacoStorageError);
+      await expect(adapter.retrieve('invalid-reference')).rejects.toThrow(
+        TacoStorageError
+      );
     });
 
     it('should throw error for non-existent IPFS hash', async () => {
-      const fakeHash = 'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi';
-      await expect(adapter.retrieve(fakeHash)).rejects.toThrow(TacoStorageError);
+      const fakeHash =
+        'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi';
+      await expect(adapter.retrieve(fakeHash)).rejects.toThrow(
+        TacoStorageError
+      );
     });
   });
 
@@ -208,7 +227,8 @@ describe('HeliaAdapter Integration Tests', () => {
     );
 
     it('should return false when content does not exist', async () => {
-      const fakeHash = 'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi';
+      const fakeHash =
+        'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi';
       const exists = await adapter.exists(fakeHash);
       expect(exists).toBe(false);
     });
@@ -235,7 +255,7 @@ describe('HeliaAdapter Integration Tests', () => {
       // Create a separate adapter for cleanup testing
       const testAdapter = new HeliaAdapter();
       await testAdapter.initialize();
-      
+
       // Should not throw
       await expect(testAdapter.cleanup()).resolves.not.toThrow();
     }, 30000);

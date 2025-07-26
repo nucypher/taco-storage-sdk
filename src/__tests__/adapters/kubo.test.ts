@@ -5,12 +5,12 @@
  * Requires IPFS daemon running at http://localhost:5001
  */
 
-import { IPFSAdapter } from '../../adapters/ipfs/index';
+import { KuboAdapter } from '../../adapters/ipfs/index';
 import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../types';
 import { TEST_TIMEOUT } from '../setup';
 
-describe('IPFSAdapter Real Integration Tests', () => {
-  let adapter: IPFSAdapter;
+describe('KuboAdapter Real Integration Tests', () => {
+  let adapter: KuboAdapter;
   let storedData: Array<{ id: string; reference: string }> = []; // Track for cleanup
   
   // Shared test data
@@ -28,7 +28,7 @@ describe('IPFSAdapter Real Integration Tests', () => {
 
   beforeAll(async () => {
     // Test if local IPFS node is running
-    adapter = new IPFSAdapter({
+    adapter = new KuboAdapter({
       url: 'http://localhost:5001',
       timeout: 10000,
       pin: true,
@@ -64,17 +64,17 @@ describe('IPFSAdapter Real Integration Tests', () => {
 
   describe('constructor', () => {
     it('should create instance with default config', () => {
-      const defaultAdapter = new IPFSAdapter();
-      expect(defaultAdapter).toBeInstanceOf(IPFSAdapter);
+      const defaultAdapter = new KuboAdapter();
+      expect(defaultAdapter).toBeInstanceOf(KuboAdapter);
     });
 
     it('should create instance with custom config', () => {
-      const customAdapter = new IPFSAdapter({
-        url: 'http://custom-ipfs:5001',
-        timeout: 60000,
+      const customAdapter = new KuboAdapter({
+        url: 'http://localhost:5001',
+        timeout: 20000,
         pin: false,
       });
-      expect(customAdapter).toBeInstanceOf(IPFSAdapter);
+      expect(customAdapter).toBeInstanceOf(KuboAdapter);
     });
   });
 

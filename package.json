@@ -1,6 +1,6 @@
 {
-  "name": "@nucypher/taco-storage",
-  "version": "0.1.0",
+  "name": "nucypher-experimental-taco-storage",
+  "version": "0.1.0-alpha.1",
   "description": "TypeScript SDK for encrypted data storage with TACo (Threshold Access Control), supporting multiple storage providers including IPFS and SQLite",
   "keywords": [
     "typescript",

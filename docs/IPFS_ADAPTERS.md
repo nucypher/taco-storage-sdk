@@ -35,9 +35,6 @@ import { TacoStorage } from '@nucypher/taco-storage';
 const storage = await TacoStorage.createWithKubo(config, provider, {
   endpoint: 'http://localhost:5001'  // Default IPFS API endpoint
 });
-
-// Or backward-compatible method
-const storage = await TacoStorage.createWithIPFS(config, provider);
 ```
 
 ### Configuration Options
@@ -257,10 +254,10 @@ npm run test:adapters
 ### From KuboAdapter to HeliaAdapter
 
 ```typescript
-// Before (KuboAdapter)
-const storage = await TacoStorage.createWithIPFS(config, provider);
+// KuboAdapter (external node)
+const storage = await TacoStorage.createWithKubo(config, provider);
 
-// After (HeliaAdapter)
+// HeliaAdapter (embedded node)
 const storage = await TacoStorage.createWithHelia(config, provider);
 // Data stored with one adapter can be retrieved with the other (same IPFS network)
 ```

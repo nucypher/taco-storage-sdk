@@ -325,25 +325,6 @@ export class TacoStorage {
   }
 
   /**
-   * Create a new TacoStorage instance with IPFS adapter
-   * @param config - TACo configuration
-   * @param provider - Ethereum provider
-   * @param ipfsConfig - IPFS adapter configuration
-   * @returns Promise resolving to initialized TacoStorage instance
-   */
-  public static async createWithIPFS(
-    config: TacoConfig,
-    provider: ethers.providers.Provider,
-    ipfsConfig?: import('../adapters/ipfs/index').IPFSAdapterConfig
-  ): Promise<TacoStorage> {
-    const { IPFSAdapter } = require('../adapters/ipfs/index');
-    const adapter = new IPFSAdapter(ipfsConfig);
-    const storage = new TacoStorage(adapter, config, provider);
-    await storage.initialize();
-    return storage;
-  }
-
-  /**
    * Create a new TacoStorage instance with Kubo IPFS adapter
    * @param config - TACo configuration
    * @param provider - Ethereum provider

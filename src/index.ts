@@ -6,11 +6,11 @@
  * 
  * @example
  * ```typescript
- * import { TacoStorage, IPFSAdapter } from '@nucypher/taco-storage';
+ * import { TacoStorage, KuboAdapter } from 'nucypher-experimental-taco-storage';
  * import { ethers } from 'ethers';
  * 
- * // Create storage instance with IPFS adapter
- * const storage = TacoStorage.createWithIPFS({
+ * // Create storage instance with Kubo IPFS adapter
+ * const storage = TacoStorage.createWithKubo({
  *   domain: 'devnet',
  *   ritualId: 123,
  * });
@@ -39,7 +39,6 @@ export {
   BaseIPFSAdapter,
   KuboAdapter,
   HeliaAdapter,
-  IPFSAdapter, // For backward compatibility
   SQLiteAdapter,
 } from './adapters';
 
@@ -50,7 +49,6 @@ export type {
 export type {
   KuboAdapterConfig,
   HeliaAdapterConfig,
-  IPFSAdapterConfig, // For backward compatibility
   SQLiteAdapterConfig,
 } from './adapters';
 

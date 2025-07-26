@@ -9,7 +9,8 @@ This TypeScript SDK provides a high-level interface for storing and retrieving e
 ## Features
 
 - **Threshold Encryption**: Secure data encryption using TACo's threshold access control
-- **Multiple Storage Adapters**: Support for IPFS (decentralized) and SQLite (local/centralized) storage
+- **Multiple Storage Adapters**: Support for IPFS (Kubo & Helia) and SQLite storage
+- **IPFS Flexibility**: Choose between Kubo (external node) or Helia (embedded node) IPFS implementations
 - **Flexible Access Control**: Time-based, NFT ownership, and custom condition support
 - **Professional Architecture**: Clean separation of concerns with adapter pattern
 - **TypeScript Support**: Full type safety and excellent developer experience
@@ -18,19 +19,19 @@ This TypeScript SDK provides a high-level interface for storing and retrieving e
 ## Installation
 
 ```bash
-npm install @nucypher/taco-storage
+npm install nucypher-experimental-taco-storage
 ```
 
 ## Quick Start
 
-### Basic Usage with IPFS
+### Basic Usage with IPFS (Kubo)
 
 ```typescript
-import { TacoStorage } from '@nucypher/taco-storage';
+import { TacoStorage } from 'nucypher-experimental-taco-storage';
 import { ethers } from 'ethers';
 
-// Create storage instance with IPFS adapter
-const storage = TacoStorage.createWithIPFS({
+// Create storage instance with Kubo IPFS adapter (external node)
+const storage = TacoStorage.createWithKubo({
   domain: 'devnet',
   ritualId: 123,
 });
@@ -54,10 +55,44 @@ const decryptedText = new TextDecoder().decode(retrieved.data);
 console.log('Decrypted:', decryptedText);
 ```
 
+### Basic Usage with IPFS (Helia)
+
+```typescript
+import { TacoStorage } from 'nucypher-experimental-taco-storage';
+import { ethers } from 'ethers';
+
+// Create storage instance with Helia IPFS adapter (embedded node)
+const storage = await TacoStorage.createWithHelia({
+  domain: 'devnet',
+  ritualId: 123,
+}, {
+  timeout: 30000,
+  autoStart: true,
+});
+
+// Initialize signer
+const provider = new ethers.providers.JsonRpcProvider('YOUR_RPC_URL');
+const signer = new ethers.Wallet('YOUR_PRIVATE_KEY', provider);
+
+// Store encrypted data (same API as Kubo)
+const data = new TextEncoder().encode('Hello, encrypted world!');
+const result = await storage.store(data, signer, {
+  contentType: 'text/plain',
+  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+});
+
+console.log('Stored with ID:', result.id);
+
+// Retrieve and decrypt data
+const retrieved = await storage.retrieve(result.id, signer);
+const decryptedText = new TextDecoder().decode(retrieved.data);
+console.log('Decrypted:', decryptedText);
+```
+
 ### Basic Usage with SQLite
 
 ```typescript
-import { TacoStorage } from '@nucypher/taco-storage';
+import { TacoStorage } from 'nucypher-experimental-taco-storage';
 
 // Create storage instance with SQLite adapter
 const storage = TacoStorage.createWithSQLite(
@@ -98,7 +133,7 @@ await storage.store(data, signer, {
 ### Custom Storage Adapter
 
 ```typescript
-import { BaseStorageAdapter, StorageMetadata, StorageResult } from '@nucypher/taco-storage';
+import { BaseStorageAdapter, StorageMetadata, StorageResult } from 'nucypher-experimental-taco-storage';
 
 class CustomAdapter extends BaseStorageAdapter {
   async store(encryptedData: Uint8Array, metadata: StorageMetadata): Promise<StorageResult> {
@@ -138,21 +173,38 @@ The main class for encrypted storage operations.
 
 #### Static Methods
 
-- `TacoStorage.createWithIPFS(config, ipfsConfig?)` - Create instance with IPFS adapter
+- `TacoStorage.createWithKubo(config, kuboConfig?)` - Create instance with Kubo IPFS adapter (external node)
+- `TacoStorage.createWithHelia(config, heliaConfig?)` - Create instance with Helia IPFS adapter (embedded node)
 - `TacoStorage.createWithSQLite(config, sqliteConfig?)` - Create instance with SQLite adapter
 
 ### Storage Adapters
 
-#### IPFSAdapter
+#### KuboAdapter (External IPFS Node)
 
-Decentralized storage using IPFS.
+Decentralized storage using external Kubo IPFS node.
 
 **Configuration:**
 ```typescript
-interface IPFSAdapterConfig {
+interface KuboAdapterConfig {
   url?: string;        // IPFS node URL (default: http://localhost:5001)
   timeout?: number;    // Operation timeout in ms
   pin?: boolean;       // Whether to pin content (default: true)
+}
+```
+
+#### HeliaAdapter (Embedded IPFS Node)
+
+Decentralized storage using embedded Helia IPFS node.
+
+**Configuration:**
+```typescript
+interface HeliaAdapterConfig {
+  timeout?: number;    // Operation timeout in ms (default: 30000)
+  autoStart?: boolean; // Auto-start libp2p node (default: true)
+  heliaOptions?: {     // Custom Helia configuration
+    libp2p?: any;      // Custom libp2p options
+    // ... other Helia options
+  };
 }
 ```
 
@@ -174,7 +226,7 @@ interface SQLiteAdapterConfig {
 The SDK provides comprehensive error handling with specific error types:
 
 ```typescript
-import { TacoStorageError, TacoStorageErrorType } from '@nucypher/taco-storage';
+import { TacoStorageError, TacoStorageErrorType } from 'nucypher-experimental-taco-storage';
 
 try {
   await storage.store(data, signer);
@@ -203,14 +255,21 @@ try {
 
 ### IPFS Integration Tests
 
-The IPFS adapter integration tests run against a real IPFS node and require special setup:
+The SDK includes separate test suites for both IPFS adapters:
 
+#### Kubo Adapter Tests
 **Requirements:**
 - IPFS Desktop or Kubo node running on `http://localhost:5001`
 - Tests use `kubo-rpc-client` for modern IPFS communication
 - No mocking - all tests run against real IPFS operations
 
-**Setup IPFS Desktop:**
+#### Helia Adapter Tests
+**Requirements:**
+- Uses embedded Helia IPFS node (no external dependencies)
+- Includes both unit tests (mocked) and integration tests (real Helia node)
+- Unit tests are fast and suitable for CI/CD
+
+**Setup for Kubo Tests:**
 1. Download and install [IPFS Desktop](https://github.com/ipfs/ipfs-desktop)
 2. Start IPFS Desktop (default API at `http://localhost:5001`)
 3. Run tests: `npm run test:ipfs`
@@ -225,13 +284,22 @@ brew install ipfs  # macOS
 ipfs init
 ipfs daemon
 
-# Run IPFS tests
+# Run Kubo tests
 npm run test:ipfs
 ```
 
+**Run Helia Tests:**
+```bash
+# Run Helia unit tests (fast, no external dependencies)
+npm run test:helia
+
+# Run Helia integration tests (requires Node.js experimental VM modules)
+NODE_OPTIONS="--experimental-vm-modules" npm run test:helia
+```
+
 **Note:** IPFS tests are excluded from the main test suite (`npm test`) because they:
-- Require Node.js experimental VM modules (`--experimental-vm-modules`)
-- Need a running IPFS node
+- May require Node.js experimental VM modules (`--experimental-vm-modules`)
+- Kubo tests need a running external IPFS node
 - Use real network operations (not mocked)
 
 ### Setup
@@ -250,8 +318,11 @@ npm run build
 # Run tests (excludes IPFS tests)
 npm test
 
-# Run IPFS integration tests (requires local IPFS node)
+# Run Kubo IPFS integration tests (requires local IPFS node)
 npm run test:ipfs
+
+# Run Helia IPFS unit tests
+npm run test:helia
 
 # Run ALL tests (main + IPFS integration)
 npm run test:all
@@ -269,7 +340,11 @@ npm run lint
 src/
 ├── adapters/           # Storage adapter implementations
 │   ├── base.ts        # Base adapter interface and abstract class
-│   ├── ipfs.ts        # IPFS adapter
+│   ├── ipfs/          # IPFS adapter implementations
+│   │   ├── base.ts    # Base IPFS adapter with shared functionality
+│   │   ├── kubo.ts    # Kubo IPFS adapter (external node)
+│   │   ├── helia.ts   # Helia IPFS adapter (embedded node)
+│   │   └── index.ts   # IPFS adapter exports
 │   ├── sqlite.ts      # SQLite adapter
 │   └── index.ts       # Adapter exports
 ├── core/              # Core functionality
