@@ -43,11 +43,11 @@ export class TacoStorage {
 
   constructor(
     adapter: IStorageAdapter,
-    config: TacoConfig,
+    tacoConfig: TacoConfig,
     provider: ethers.providers.Provider
   ) {
     this.adapter = adapter;
-    this.encryptionService = new TacoEncryptionService(config);
+    this.encryptionService = new TacoEncryptionService(tacoConfig);
     this.provider = provider;
   }
 
@@ -322,25 +322,6 @@ export class TacoStorage {
   }
 
   /**
-   * Create a new TacoStorage instance with IPFS adapter
-   * @param config - TACo configuration
-   * @param provider - Ethereum provider
-   * @param ipfsConfig - IPFS adapter configuration
-   * @returns Promise resolving to initialized TacoStorage instance
-   */
-  public static async createWithIPFS(
-    config: TacoConfig,
-    provider: ethers.providers.Provider,
-    ipfsConfig?: import('../adapters/ipfs/index').IPFSAdapterConfig
-  ): Promise<TacoStorage> {
-    const { IPFSAdapter } = require('../adapters/ipfs/index');
-    const adapter = new IPFSAdapter(ipfsConfig);
-    const storage = new TacoStorage(adapter, config, provider);
-    await storage.initialize();
-    return storage;
-  }
-
-  /**
    * Create a new TacoStorage instance with Kubo IPFS adapter
    * @param config - TACo configuration
    * @param provider - Ethereum provider
@@ -354,6 +335,25 @@ export class TacoStorage {
   ): Promise<TacoStorage> {
     const { KuboAdapter } = require('../adapters/ipfs/index');
     const adapter = new KuboAdapter(kuboConfig);
+    const storage = new TacoStorage(adapter, config, provider);
+    await storage.initialize();
+    return storage;
+  }
+
+  /**
+   * Create a new TacoStorage instance with Helia IPFS adapter
+   * @param config - TACo configuration
+   * @param provider - Ethereum provider
+   * @param heliaConfig - Helia adapter configuration
+   * @returns Promise resolving to initialized TacoStorage instance
+   */
+  public static async createWithHelia(
+    config: TacoConfig,
+    provider: ethers.providers.Provider,
+    heliaConfig?: import('../adapters/ipfs/index').HeliaAdapterConfig
+  ): Promise<TacoStorage> {
+    const { HeliaAdapter } = require('../adapters/ipfs/index');
+    const adapter = new HeliaAdapter(heliaConfig);
     const storage = new TacoStorage(adapter, config, provider);
     await storage.initialize();
     return storage;

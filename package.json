@@ -1,6 +1,6 @@
 {
-  "name": "@nucypher/taco-storage",
-  "version": "0.1.0",
+  "name": "nucypher-experimental-taco-storage",
+  "version": "0.1.0-alpha.1",
   "description": "TypeScript SDK for encrypted data storage with TACo (Threshold Access Control), supporting multiple storage providers including IPFS and SQLite",
   "keywords": [
     "typescript",
@@ -56,15 +56,23 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ipfs": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.ipfs.config.js",
-    "test:all": "npm test && npm run test:ipfs",
+    "test:helia": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.helia.config.js",
+    "test:adapters": "npm run test:ipfs && npm run test:helia",
+    "test:all": "npm test && npm run test:ipfs && npm run test:helia",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@helia/interface": "^5.4.0",
+    "@helia/unixfs": "^3.0.0",
+    "@libp2p/crypto": "^5.1.7",
+    "@libp2p/logger": "^5.1.21",
     "@helia/unixfs": "^3.0.0",
     "@nucypher/taco": "^0.6.0",
+    "helia": "^5.5.0",
     "kubo-rpc-client": "^3.0.0",
     "pinata": "^2.4.9",
+    "multiformats": "^13.3.7",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.1"
   },
