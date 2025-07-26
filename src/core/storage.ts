@@ -360,6 +360,25 @@ export class TacoStorage {
   }
 
   /**
+   * Create a new TacoStorage instance with Pinata IPFS adapter
+   * @param config - TACo configuration
+   * @param provider - Ethereum provider
+   * @param pinataConfig - Pinata adapter configuration
+   * @returns Promise resolving to initialized TacoStorage instance
+   */
+  public static async createWithPinata(
+    config: TacoConfig,
+    provider: ethers.providers.Provider,
+    pinataConfig: import('../adapters/pinata').PinataAdapterConfig
+  ): Promise<TacoStorage> {
+    const { PinataAdapter } = require('../adapters/pinata');
+    const adapter = new PinataAdapter(pinataConfig);
+    const storage = new TacoStorage(adapter, config, provider);
+    await storage.initialize();
+    return storage;
+  }
+
+  /**
    * Create a new TacoStorage instance with SQLite adapter
    * @param config - TACo configuration
    * @param provider - Ethereum provider

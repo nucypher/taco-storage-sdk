@@ -10,7 +10,7 @@ This TypeScript SDK provides a high-level interface for storing and retrieving e
 
 - **Threshold Encryption**: Secure data encryption using TACo's threshold access control
 - **Multiple Storage Adapters**: Support for IPFS (Kubo & Helia) and SQLite storage
-- **IPFS Flexibility**: Choose between Kubo (external node) or Helia (embedded node) IPFS implementations
+- **IPFS Flexibility**: Choose between Kubo (external node) or Helia (embedded node) IPFS implementations - both fully functional
 - **Flexible Access Control**: Time-based, NFT ownership, and custom condition support
 - **Professional Architecture**: Clean separation of concerns with adapter pattern
 - **TypeScript Support**: Full type safety and excellent developer experience
@@ -175,6 +175,7 @@ The main class for encrypted storage operations.
 
 - `TacoStorage.createWithKubo(config, kuboConfig?)` - Create instance with Kubo IPFS adapter (external node)
 - `TacoStorage.createWithHelia(config, heliaConfig?)` - Create instance with Helia IPFS adapter (embedded node)
+- `TacoStorage.createWithPinata(config, pinataConfig)` - Create instance with Pinata IPFS adapter (hosted service)
 - `TacoStorage.createWithSQLite(config, sqliteConfig?)` - Create instance with SQLite adapter
 
 ### Storage Adapters
@@ -206,6 +207,30 @@ interface HeliaAdapterConfig {
     // ... other Helia options
   };
 }
+```
+
+#### PinataAdapter (Hosted IPFS Service)
+
+Decentralized storage using [Pinata](https://pinata.cloud/) hosted IPFS service. Pinata provides a user-friendly API for IPFS storage with additional features like pinning guarantees and analytics.
+
+**Configuration:**
+```typescript
+interface PinataAdapterConfig {
+  url: string;    // Pinata gateway URL (e.g., "gateway.pinata.cloud")
+  jwt: string;    // Pinata JWT token for authentication
+}
+```
+
+**Usage:**
+```typescript
+const storage = await TacoStorage.createWithPinata(
+  config,
+  provider,
+  {
+    url: 'gateway.pinata.cloud',
+    jwt: 'your-pinata-jwt-token'
+  }
+);
 ```
 
 #### SQLiteAdapter
@@ -291,11 +316,16 @@ npm run test:ipfs
 **Run Helia Tests:**
 ```bash
 # Run Helia unit tests (fast, no external dependencies)
-npm run test:helia
+npm run test:helia-unit
 
 # Run Helia integration tests (requires Node.js experimental VM modules)
-NODE_OPTIONS="--experimental-vm-modules" npm run test:helia
+npm run test:helia-integration
+
+# Run both Helia unit and integration tests
+npm run test:helia-all
 ```
+
+**Status:** ✅ All Helia integration tests are passing. The adapter is fully functional with embedded IPFS node support.
 
 **Note:** IPFS tests are excluded from the main test suite (`npm test`) because they:
 - May require Node.js experimental VM modules (`--experimental-vm-modules`)
@@ -318,11 +348,11 @@ npm run build
 # Run tests (excludes IPFS tests)
 npm test
 
-# Run Kubo IPFS integration tests (requires local IPFS node)
-npm run test:ipfs
+# Run Kubo IPFS tests (requires local IPFS node)
+npm run test:kubo-all
 
-# Run Helia IPFS unit tests
-npm run test:helia
+# Run Helia IPFS tests
+npm run test:helia-all
 
 # Run ALL tests (main + IPFS integration)
 npm run test:all

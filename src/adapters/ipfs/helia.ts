@@ -131,33 +131,60 @@ export class HeliaAdapter extends BaseIPFSAdapter {
     const { fs } = this.ensureHeliaReady();
     
     const cid = this.parseCID(hash);
-    const chunks: Uint8Array[] = [];
     
-    // Create timeout promise
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), this.heliaConfig.timeout)
-    );
+    // Create timeout promise with cleanup
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Timeout')), this.heliaConfig.timeout);
+    });
     
     try {
-      const contentIterable = fs.cat(cid, {
-        onProgress: (progress) => {
-          // Optional: could emit progress events here
+      
+      // Handle both Promise<Uint8Array> and AsyncIterable<Uint8Array> return types
+      const catResult = fs.cat(cid);
+      
+      // Check if it's a Promise (newer Helia versions)
+      if (catResult && typeof (catResult as any).then === 'function') {
+        try {
+          const result = await Promise.race([
+            catResult as unknown as Promise<Uint8Array>,
+            timeoutPromise
+          ]);
+          clearTimeout(timeoutId!);
+          return result;
+        } catch (error) {
+          clearTimeout(timeoutId!);
+          throw error;
         }
-      });
+      }
       
-      // Race between content retrieval and timeout
-      const result = await Promise.race([
-        (async () => {
-          for await (const chunk of contentIterable) {
-            chunks.push(chunk);
-          }
-          return Buffer.concat(chunks);
-        })(),
-        timeoutPromise
-      ]);
-      
-      return result;
+      // Handle AsyncIterable (older versions)
+      try {
+        const chunks: Uint8Array[] = [];
+        for await (const chunk of catResult as AsyncIterable<Uint8Array>) {
+          chunks.push(chunk);
+        }
+        
+        // Concatenate all chunks
+        const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        const result = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+          result.set(chunk, offset);
+          offset += chunk.length;
+        }
+        
+        clearTimeout(timeoutId!);
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId!);
+        throw error;
+      }
     } catch (error) {
+      // Ensure timeout is always cleared even if there's an early error
+      if (typeof timeoutId! !== 'undefined') {
+        clearTimeout(timeoutId!);
+      }
       if ((error as Error).message.includes('not found')) {
         throw new TacoStorageError(
           TacoStorageErrorType.NOT_FOUND,
@@ -233,14 +260,19 @@ export class HeliaAdapter extends BaseIPFSAdapter {
       };
 
       // Add to IPFS using Helia
-      const ipfsHash = await this.addContent(new TextEncoder().encode(JSON.stringify(dataPackage)));
-
+      const jsonString = JSON.stringify(dataPackage);
+      const encodedData = new TextEncoder().encode(jsonString);
+      
+      const ipfsHash = await this.addContent(encodedData);
+      
       // Pin the content by default
       await this.pinContent(ipfsHash);
+      
+      const reference = this.generateReference(ipfsHash);
 
       return {
         id: metadata.id,
-        reference: this.generateReference(ipfsHash),
+        reference: reference,
         metadata: this.createIPFSMetadata(ipfsHash, metadata),
       };
     } catch (error) {
@@ -265,7 +297,14 @@ export class HeliaAdapter extends BaseIPFSAdapter {
       
       // Retrieve from IPFS using Helia
       const content = await this.getContent(ipfsHash);
-      const dataPackage = JSON.parse(new TextDecoder().decode(content));
+      
+      const decodedText = new TextDecoder().decode(content);
+      
+      if (decodedText.trim() === '') {
+        throw new Error('Retrieved content is empty');
+      }
+      
+      const dataPackage = JSON.parse(decodedText);
 
       // Reconstruct the original data and metadata
       const encryptedData = new Uint8Array(dataPackage.data);

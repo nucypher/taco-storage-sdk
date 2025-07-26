@@ -1,15 +1,15 @@
 /**
- * IPFS Adapter Integration Tests
+ * KuboAdapter Unit Tests (Mocked)
  * 
- * These tests use a real IPFS node for integration testing.
- * Requires IPFS daemon running at http://localhost:5001
+ * These tests use mocked kubo-rpc-client for fast unit testing.
+ * No external IPFS node required - all functionality is mocked.
  */
 
-import { KuboAdapter } from '../../adapters/ipfs/index';
-import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../types';
-import { TEST_TIMEOUT } from '../setup';
+import { KuboAdapter } from '../../../adapters/ipfs/index';
+import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../../types';
+import { TEST_TIMEOUT } from '../../setup';
 
-describe('KuboAdapter Real Integration Tests', () => {
+describe('KuboAdapter Unit Tests (Mocked)', () => {
   let adapter: KuboAdapter;
   let storedData: Array<{ id: string; reference: string }> = []; // Track for cleanup
   
@@ -27,21 +27,15 @@ describe('KuboAdapter Real Integration Tests', () => {
   };
 
   beforeAll(async () => {
-    // Test if local IPFS node is running
+    // Initialize adapter with mocked kubo-rpc-client
     adapter = new KuboAdapter({
-      url: 'http://localhost:5001',
+      url: 'http://localhost:5001', // This will be mocked
       timeout: 10000,
       pin: true,
     });
     
-    try {
-      await adapter.initialize();
-    } catch (error) {
-      console.warn('⚠️  Local IPFS node not available at http://localhost:5001');
-      console.warn('   Please start IPFS daemon with: ipfs daemon');
-      console.warn('   Tests will fail if IPFS node is not running');
-      throw new Error('IPFS node not available - tests require local IPFS daemon');
-    }
+    // Initialize - this will succeed with mocked client
+    await adapter.initialize();
   });
 
   beforeEach(async () => {

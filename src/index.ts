@@ -39,6 +39,7 @@ export {
   BaseIPFSAdapter,
   KuboAdapter,
   HeliaAdapter,
+  PinataAdapter,
   SQLiteAdapter,
 } from './adapters';
 
@@ -49,6 +50,7 @@ export type {
 export type {
   KuboAdapterConfig,
   HeliaAdapterConfig,
+  PinataAdapterConfig,
   SQLiteAdapterConfig,
 } from './adapters';
 

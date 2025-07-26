@@ -1,6 +1,6 @@
 {
   "name": "nucypher-experimental-taco-storage",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.1-alpha.1",
   "description": "TypeScript SDK for encrypted data storage with TACo (Threshold Access Control), supporting multiple storage providers including IPFS and SQLite",
   "keywords": [
     "typescript",
@@ -55,10 +55,16 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ipfs": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.ipfs.config.js",
+    "test:kubo": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.kubo.config.js",
+    "test:kubo-unit": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.kubo.config.js",
+    "test:kubo-integration": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.kubo-integration.config.js",
+    "test:kubo-all": "npm run test:kubo-unit && npm run test:kubo-integration",
     "test:helia": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.helia.config.js",
-    "test:adapters": "npm run test:ipfs && npm run test:helia",
-    "test:all": "npm test && npm run test:ipfs && npm run test:helia",
+    "test:helia-unit": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.helia.config.js",
+    "test:helia-integration": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --config jest.helia-integration.config.js",
+    "test:helia-all": "npm run test:helia-unit && npm run test:helia-integration",
+    "test:all-ipfs": "npm run test:kubo-all && npm run test:helia-all",
+    "test:all": "npm test && npm run test:all-ipfs",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },

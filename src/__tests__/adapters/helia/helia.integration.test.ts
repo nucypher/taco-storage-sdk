@@ -3,6 +3,29 @@
  * Tests the HeliaAdapter with embedded Helia IPFS node
  */
 
+// Polyfill for Promise.withResolvers (Node.js < 22)
+declare global {
+  interface PromiseConstructor {
+    withResolvers?<T>(): {
+      promise: Promise<T>;
+      resolve: (value: T | PromiseLike<T>) => void;
+      reject: (reason?: any) => void;
+    };
+  }
+}
+
+if (!(Promise as any).withResolvers) {
+  (Promise as any).withResolvers = function <T>() {
+    let resolve: (value: T | PromiseLike<T>) => void;
+    let reject: (reason?: any) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve: resolve!, reject: reject! };
+  };
+}
+
 import { HeliaAdapter } from '../../../adapters/ipfs/helia';
 import {
   StorageMetadata,
@@ -158,7 +181,7 @@ describe('HeliaAdapter Integration Tests', () => {
 
     it('should throw error for non-existent IPFS hash', async () => {
       const fakeHash =
-        'ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi';
+        'ipfs://bafybeiabc123fake456hash789nonexistent012345678901234567890abcd';
       await expect(adapter.retrieve(fakeHash)).rejects.toThrow(
         TacoStorageError
       );

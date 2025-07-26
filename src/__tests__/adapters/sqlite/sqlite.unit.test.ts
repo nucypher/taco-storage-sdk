@@ -2,9 +2,9 @@
  * Tests for SQLiteAdapter
  */
 
-import { SQLiteAdapter } from '../../adapters/sqlite';
-import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../types';
-import { TEST_TIMEOUT } from '../setup';
+import { SQLiteAdapter } from '../../../adapters/sqlite';
+import { StorageMetadata, TacoStorageError, TacoStorageErrorType } from '../../../types';
+import { TEST_TIMEOUT } from '../../setup';
 import path from 'path';
 import fs from 'fs';
 

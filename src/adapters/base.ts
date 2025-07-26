@@ -2,7 +2,7 @@
  * Base storage adapter interface and abstract implementation
  */
 
-import { AdapterConfig, StorageMetadata, StorageResult, RetrievalResult } from '../types';
+import { AdapterConfig, StorageMetadata, StorageResult, RetrievalResult, TacoStorageError, TacoStorageErrorType } from '../types';
 
 /**
  * Base interface that all storage adapters must implement
@@ -81,7 +81,10 @@ export abstract class BaseStorageAdapter implements IStorageAdapter {
   protected validateConfig(requiredKeys: string[]): void {
     const missingKeys = requiredKeys.filter(key => !(key in this.config));
     if (missingKeys.length > 0) {
-      throw new Error(`Missing required configuration: ${missingKeys.join(', ')}`);
+      throw new TacoStorageError(
+        TacoStorageErrorType.INVALID_CONFIG,
+        `Missing required configuration: ${missingKeys.join(', ')}`
+      );
     }
   }
 
